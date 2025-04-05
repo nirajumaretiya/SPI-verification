@@ -81,10 +81,62 @@ module spi_slave(
     int count=0;
 
     always @(posedge sclk) begin
-
-        
+        case(state) 
+            detect_start: begin
+                if(cs==1'b0) begin
+                    state<=read_data;
+                end
+                else begin
+                    state<=detect_start;
+                end
+            end
+            read_data: begin 
+                if(count<=11) begin
+                    count<=count+1;
+                    temp= {mosi,temp[11:1]};
+                end
+                else begin
+                    count<=0;
+                    done<=1'b1;
+                    state<=detect_start;
+                end
+            end
+        endcase
     end
+assign dout=temp;
+endmodule
 
+// synchronizing both the master and slave
+module top(
+    input clk,rst,newd,
+    input [11:0] din,
+   // output sclk,mosi,cs,
+    output [11:0] dout,
+    output done
+);
 
+wire sclk,mosi,cs;
+spi_master u1(
+    .clk(clk),
+    .rst(rst),
+    .newd(newd),
+    .din(din),
+    .sclk(sclk),
+    .mosi(mosi),
+    .cs(cs)
+);
 
+spi_slave u2(
+    .sclk(sclk),
+    .mosi(mosi),
+    .cs(cs),
+    .dout(dout),
+    .done(done)
+);
+
+// interface
+interface spi_if;
+    logic clk,newd,rst,sclk,cs,mosi;
+    logic [11:0] din,dout;
+endinterface
     
