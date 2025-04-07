@@ -137,5 +137,6 @@ spi_slave u2(
 interface spi_if;
     logic clk,newd,rst,sclk,cs,mosi;
     logic [11:0] din,dout;
+    logic done;
 endinterface
     
