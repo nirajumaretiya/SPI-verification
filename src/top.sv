@@ -1,7 +1,7 @@
 module spi_master(
-    input clk,newd,rst,
+    input clk, newd, rst,
     input [11:0] din,
-    output reg sclk,mosi,cs
+    output reg sclk, mosi, cs
 );
 
     typedef enum reg [1:0] {IDLE,ENABLE,SEND,COMP} state_t;
@@ -13,16 +13,16 @@ module spi_master(
     // Generation of clock
     always @(posedge clk) begin
         if(rst) begin
-            countc<=0;
-            sclk<=1'b0;
+            countc <= 0;
+            sclk <= 1'b0;
         end
         else begin
             if(countc<10) begin
                 countc<=countc+1; 
             end
             else begin
-                countc<=0;
-                sclk<=~sclk;
+                countc <= 0;
+                sclk <= ~sclk;
             end
         end
     end
@@ -52,10 +52,10 @@ module spi_master(
                         count<=count+1;
                     end
                     else begin
-                        count<=0;
-                        state<=IDLE;
-                        cs<=1'b1;
-                        mosi<=1'b0;
+                        count <= 0;
+                        next_state <= IDLE;
+                        cs <= 1'b1;
+                        mosi <= 1'b0;
                     end
                 end
 
@@ -67,10 +67,9 @@ module spi_master(
     end
 endmodule
 
-
 module spi_slave(
-    input sclk,mosi,cs,
-    output [11:0] dout,
+    input clk, rst, sclk, mosi, cs,
+    output reg [11:0] dout,
     output reg done
 );
 
