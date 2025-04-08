@@ -1,10 +1,9 @@
 // Transaction class for SPI data
 class transaction;  
-    bit newd;                 // Control signal for new data
-    rand bit [11:0] din;      // Random 12-bit data input
-    bit [11:0] dout;          // 12-bit output data
+    bit newd;                
+    rand bit [11:0] din;      
+    bit [11:0] dout;          
   
-    // Create a copy of the transaction
     function transaction copy();
         copy = new();             
         copy.newd = this.newd;   
@@ -15,16 +14,16 @@ endclass
 
 // Generator class to create random transactions
 class generator;
-    transaction tr;           // Transaction object
-    mailbox #(transaction) mbx; // Mailbox for transactions
-    event done;               // Done event
-    int count = 0;           // Transaction count
+    transaction tr;          
+    mailbox #(transaction) mbx; 
+    event done;             
+    int count = 0;          
     event drvnext;           // Event for driver sync
     event sconext;           // Event for scoreboard sync
   
     function new(mailbox #(transaction) mbx);
-        this.mbx = mbx;          // Initialize mailbox
-        tr = new();              // Create transaction object
+        this.mbx = mbx;          
+        tr = new();              
     endfunction
   
     task run();
@@ -34,31 +33,31 @@ class generator;
             $display("[GEN] : din : %0d", tr.din);
             @(sconext);          // Wait for scoreboard sync
         end
-        -> done;                 // Signal completion
+        -> done;                
     endtask
 endclass
 
 // Driver class to drive transactions to DUT
 class driver;
-    virtual spi_if vif;      // Virtual interface
-    transaction tr;          // Transaction object
-    mailbox #(transaction) mbx; // Mailbox for transactions
-    mailbox #(bit [11:0]) mbxds; // Mailbox for data output
+    virtual spi_if vif;      
+    transaction tr;          
+    mailbox #(transaction) mbx; 
+    mailbox #(bit [11:0]) mbxds; 
     event drvnext;          // Event for generator sync
-    bit [11:0] din;        // Data input
+    bit [11:0] din;        
   
     function new(mailbox #(bit [11:0]) mbxds, mailbox #(transaction) mbx);
-        this.mbx = mbx;          // Initialize mailboxes
+        this.mbx = mbx;          
         this.mbxds = mbxds;
     endfunction
   
     // Reset task
     task reset();
-        vif.rst <= 1'b1;         // Assert reset
-        vif.newd <= 1'b0;        // Clear new data
-        vif.din <= 1'b0;         // Clear data input
+        vif.rst <= 1'b1;         
+        vif.newd <= 1'b0;        
+        vif.din <= 1'b0;         
         repeat(10) @(posedge vif.clk);
-        vif.rst <= 1'b0;         // Deassert reset
+        vif.rst <= 1'b0;         
         repeat(5) @(posedge vif.clk);
         $display("[DRV] : RESET DONE");
         $display("-----------------------------------------");
@@ -66,12 +65,12 @@ class driver;
   
     task run();
         forever begin
-            mbx.get(tr);         // Get transaction
-            vif.newd <= 1'b1;    // Assert new data
-            vif.din <= tr.din;   // Drive data
-            mbxds.put(tr.din);   // Send to monitor
+            mbx.get(tr);         
+            vif.newd <= 1'b1;    
+            vif.din <= tr.din;   
+            mbxds.put(tr.din);   
             @(posedge vif.sclk);
-            vif.newd <= 1'b0;    // Clear new data
+            vif.newd <= 1'b0;    
             @(posedge vif.done);
             $display("[DRV] : DATA SENT TO DAC : %0d",tr.din);
             @(posedge vif.sclk);
@@ -81,20 +80,20 @@ endclass
 
 // Monitor class to capture DUT outputs
 class monitor;
-    transaction tr;          // Transaction object
-    mailbox #(bit [11:0]) mbx; // Mailbox for data
-    virtual spi_if vif;      // Virtual interface
+    transaction tr;          
+    mailbox #(bit [11:0]) mbx; 
+    virtual spi_if vif;     
   
     function new(mailbox #(bit [11:0]) mbx);
-        this.mbx = mbx;      // Initialize mailbox
+        this.mbx = mbx;     
     endfunction
   
     task run();
-        tr = new();          // Create transaction
+        tr = new();         
         forever begin
             @(posedge vif.sclk);
             @(posedge vif.done);
-            tr.dout = vif.dout;     // Capture output
+            tr.dout = vif.dout;
             @(posedge vif.sclk);
             $display("[MON] : DATA SENT : %0d", tr.dout);
             mbx.put(tr.dout);       // Send to scoreboard
@@ -104,12 +103,12 @@ endclass
 
 // Scoreboard class to verify data
 class scoreboard;
-    mailbox #(bit [11:0]) mbxds, mbxms; // Mailboxes for data
+    mailbox #(bit [11:0]) mbxds, mbxms; 
     bit [11:0] ds, ms;                  // Data from driver and monitor
-    event sconext;                       // Event for sync
+    event sconext;                       
   
     function new(mailbox #(bit [11:0]) mbxds, mailbox #(bit [11:0]) mbxms);
-        this.mbxds = mbxds;             // Initialize mailboxes
+        this.mbxds = mbxds;            
         this.mbxms = mbxms;
     endfunction
   
@@ -119,65 +118,65 @@ class scoreboard;
             mbxms.get(ms);              // Get monitor data
             $display("[SCO] : DRV : %0d MON : %0d", ds, ms);
             
-            if(ds == ms)                // Compare data
+            if(ds == ms)
                 $display("[SCO] : DATA MATCHED");
             else
                 $display("[SCO] : DATA MISMATCHED");
             
             $display("-----------------------------------------");
-            ->sconext;                  // Signal completion
+            ->sconext;                  
         end
     endtask
 endclass
 
 // Environment class to coordinate verification
 class environment;
-    generator gen;                 // Generator instance
-    driver drv;                    // Driver instance
-    monitor mon;                   // Monitor instance
-    scoreboard sco;                // Scoreboard instance
-    event nextgd, nextgs;          // Sync events
-    mailbox #(transaction) mbxgd;  // Mailbox for transactions
-    mailbox #(bit [11:0]) mbxds, mbxms; // Mailboxes for data
-    virtual spi_if vif;            // Virtual interface
+    generator gen;                
+    driver drv;                    
+    monitor mon;                   
+    scoreboard sco;                
+    event nextgd, nextgs;          
+    mailbox #(transaction) mbxgd; 
+    mailbox #(bit [11:0]) mbxds, mbxms; 
+    virtual spi_if vif;           
   
     function new(virtual spi_if vif);
-        mbxgd = new();             // Create mailboxes
+        mbxgd = new();            
         mbxms = new();
         mbxds = new();
-        gen = new(mbxgd);          // Create components
+        gen = new(mbxgd);          
         drv = new(mbxds,mbxgd);
         mon = new(mbxms);
         sco = new(mbxds, mbxms);
-        this.vif = vif;            // Connect interface
+        this.vif = vif;           
         drv.vif = this.vif;
         mon.vif = this.vif;
-        gen.sconext = nextgs;      // Connect events
+        gen.sconext = nextgs;      
         sco.sconext = nextgs;
         gen.drvnext = nextgd;
         drv.drvnext = nextgd;
     endfunction
   
     task pre_test();
-        drv.reset();               // Perform reset
+        drv.reset();               
     endtask
   
     task test();
         fork                        // Run components in parallel
-            gen.run();              // Run generator
-            drv.run();              // Run driver
-            mon.run();              // Run monitor
-            sco.run();              // Run scoreboard
+            gen.run();             
+            drv.run();             
+            mon.run();              
+            sco.run();              
         join_any
     endtask
   
     task post_test();
-        wait(gen.done.triggered);   // Wait for completion
+        wait(gen.done.triggered);   
         $finish();
     endtask
   
     task run();
-        pre_test();                 // Run test phases
+        pre_test();
         test();
         post_test();
     endtask
@@ -185,25 +184,24 @@ endclass
 
 // Testbench module
 module tb;
-    spi_if vif();                 // Create interface
-    top dut(vif.clk,vif.rst,vif.newd,vif.din,vif.dout,vif.done); // Instantiate DUT
+    spi_if vif();                
+    top dut(vif.clk,vif.rst,vif.newd,vif.din,vif.dout,vif.done);
   
-    // Clock generation
     initial begin
         vif.clk <= 0;
     end
       
     always #10 vif.clk <= ~vif.clk;
   
-    environment env;               // Environment instance
+    environment env;              
   
-    assign vif.sclk = dut.m1.sclk; // Connect SPI clock
+    assign vif.sclk = dut.m1.sclk;
   
     // Main simulation
     initial begin
-        env = new(vif);           // Create environment
-        env.gen.count = 4;        // Set transaction count
-        env.run();                // Run test
+        env = new(vif);           
+        env.gen.count = 4;       
+        env.run();                
     end
       
     // Waveform dumping
