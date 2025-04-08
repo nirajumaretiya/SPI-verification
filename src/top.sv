@@ -4,7 +4,7 @@ module spi_master(
     output reg sclk,mosi,cs
 );
 
-    typedef enum reg [1:0] {IDLE,ENABLE,SEND,COMP} state_t;
+    typedef enum bit [1:0] {IDLE=2'b00,ENABLE=2'b01,SEND=2'b10,COMP=2'b11} state_t;
     state_t state=IDLE;
 
     int countc=0;
@@ -29,14 +29,14 @@ module spi_master(
 
     reg [11:0] temp;
     always @(posedge clk) begin
-        if(rst) begin
+        if(rst==1'b1) begin
             mosi<=1'b0;
             cs<=1'b1;
         end
         else begin
             case(state)
                 IDLE: begin
-                    if(newd) begin
+                    if(newd==1'b1) begin
                         state<=SEND;
                         temp<=din;
                         cs<=1'b0;
@@ -74,7 +74,7 @@ module spi_slave(
     output reg done
 );
 
-    typedef enum bit {detect_start,read_data} state_t;
+    typedef enum bit {detect_start=1'b0,read_data=1'b1} state_t;
     state_t state=detect_start;
     
     reg [11:0] temp=12'h000;
@@ -83,6 +83,7 @@ module spi_slave(
     always @(posedge sclk) begin
         case(state) 
             detect_start: begin
+                done<=1'b0;
                 if(cs==1'b0) begin
                     state<=read_data;
                 end
@@ -93,7 +94,7 @@ module spi_slave(
             read_data: begin 
                 if(count<=11) begin
                     count<=count+1;
-                    temp= {mosi,temp[11:1]};
+                    temp<={mosi,temp[11:1]};
                 end
                 else begin
                     count<=0;
